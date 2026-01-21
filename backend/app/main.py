@@ -3,4 +3,4 @@ from backend.app.api.routes import router
 
 app = FastAPI(title="Mental Health AI Agent")
 #initial state
-app.include_router(router)
+app.include_router(router, prefix="/api")
