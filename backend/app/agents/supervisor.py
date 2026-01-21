@@ -5,36 +5,38 @@ from langgraph.prebuilt import create_react_agent
 from backend.app.tools.therapy import query_medgemma
 from backend.app.tools.emergency import call_emergency
 from backend.app.agents.prompts import SYSTEM_PROMPT
-from backend.app.config import GROQ_API_KEY
+from backend.app.config import settings
 
 
 @tool
 def ask_mental_health_specialist(query: str) -> str:
     """
-    Generate a therapeutic response using the MedGemma model.
-    Use this for all general user queries, mental health questions, emotional concerns,
-    or to offer empathetic, evidence-based guidance in a conversational tone.
+    Provide empathetic, non-clinical emotional support.
+    Use this tool for general mental health concerns such as stress,
+    anxiety, sadness, or emotional overwhelm.
     """
-
     return query_medgemma(query)
 
 
 @tool
-def emergency_call_tool() -> None:
+def emergency_call_tool(reason: str = "user at risk") -> str:
     """
-    Place an emergency call to the safety helpline's phone number via Twilio.
-    Use this only if the user expresses suicidal ideation, intent to self-harm,
-    or describes a mental health emergency requiring immediate help.
+    Trigger emergency escalation when the user expresses suicidal ideation,
+    self-harm intent, or immediate danger.
     """
     call_emergency()
+    return "Emergency escalation initiated."
 
 
 tools = [ask_mental_health_specialist, emergency_call_tool]
 
 llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
-    temperature=0.2,
-    api_key=GROQ_API_KEY,
+    model=settings.MODEL_NAME,
+    temperature=settings.TEMPERATURE,
+    api_key=settings.GROQ_API_KEY,
 )
 
-graph = create_react_agent(llm, tools=tools)
+graph = create_react_agent(
+    model=llm,
+    tools=tools,
+)

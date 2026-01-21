@@ -1,24 +1,29 @@
-from fastapi import APIRouter
-from backend.app.api.schemas import Query
+from fastapi import APIRouter, HTTPException
+from backend.app.api.schemas import Query, AgentResponse
 from backend.app.agents.supervisor import graph
-from backend.app.agents.prompts import SYSTEM_PROMPT
 from backend.app.services.orchestration import parse_response
 
 router = APIRouter()
 
-@router.post("/ask")
+
+@router.post("/ask", response_model=AgentResponse)
 async def ask(query: Query):
-    inputs = {
-        "messages": [
-            ("system", SYSTEM_PROMPT),
-            ("user", query.message),
-        ]
-    }
+    try:
+        stream = graph.stream(
+            {"messages": [("user", query.message)]},
+            stream_mode="updates",
+        )
 
-    stream = graph.stream(inputs, stream_mode="updates")
-    tool, response = parse_response(stream)
+        tool, response, escalated = parse_response(stream)
 
-    return {
-        "response": response,
-        "tool_called": tool,
-    }
+        return AgentResponse(
+            response=response,
+            tool_called=tool,
+            escalated=escalated,
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Internal agent error",
+        )

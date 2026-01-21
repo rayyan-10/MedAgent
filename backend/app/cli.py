@@ -7,28 +7,33 @@ def run_cli():
     print("🧠 Mental Health AI Agent (CLI Mode)")
     print("Type 'exit' or 'quit' to stop.\n")
 
-    while True:
-        user_input = input("User: ").strip()
+    messages = [("system", SYSTEM_PROMPT)]
 
-        if user_input.lower() in {"exit", "quit"}:
-            print("Goodbye 👋")
-            break
+    try:
+        while True:
+            user_input = input("User: ").strip()
 
-        print(f"Received user input: {user_input[:200]}...")
+            if user_input.lower() in {"exit", "quit"}:
+                print("Goodbye 👋")
+                break
 
-        inputs = {
-            "messages": [
-                ("system", SYSTEM_PROMPT),
-                ("user", user_input),
-            ]
-        }
+            messages.append(("user", user_input))
 
-        stream = graph.stream(inputs, stream_mode="updates")
-        tool_called_name, final_response = parse_response(stream)
+            stream = graph.stream(
+                {"messages": messages},
+                stream_mode="updates",
+            )
 
-        print("\nTOOL CALLED:", tool_called_name)
-        print("ANSWER:", final_response)
-        print("-" * 60)
+            tool_called, response, escalated = parse_response(stream)
+
+            messages.append(("assistant", response))
+
+            print("\nTOOL CALLED:", tool_called)
+            print("ANSWER:", response)
+            print("-" * 60)
+
+    except KeyboardInterrupt:
+        print("\nSession terminated safely.")
 
 
 if __name__ == "__main__":

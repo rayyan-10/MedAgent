@@ -1,15 +1,34 @@
-def parse_response(stream):
-    tool_called = "None"
-    final_response = None
+from typing import Optional, Tuple
 
-    for s in stream:
-        if "tools" in s:
-            for msg in s["tools"].get("messages", []):
-                tool_called = getattr(msg, "name", tool_called)
 
-        if "agent" in s:
-            for msg in s["agent"].get("messages", []):
+def parse_response(stream) -> Tuple[Optional[str], str, bool]:
+    """
+    Returns:
+      tool_name: name of the tool invoked (if any)
+      response: final assistant message
+      escalated: whether emergency escalation occurred
+    """
+
+    tool_name = None
+    response_parts = []
+    escalated = False
+
+    for event in stream:
+        # Tool execution
+        if "tools" in event:
+            for msg in event["tools"].get("messages", []):
+                name = getattr(msg, "name", None)
+                if name:
+                    tool_name = name
+                    if name == "emergency_call_tool":
+                        escalated = True
+
+        # Agent output
+        if "agent" in event:
+            for msg in event["agent"].get("messages", []):
                 if msg.content:
-                    final_response = msg.content
+                    response_parts.append(msg.content)
 
-    return tool_called, final_response
+    final_response = response_parts[-1] if response_parts else ""
+
+    return tool_name, final_response, escalated

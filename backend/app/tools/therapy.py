@@ -1,33 +1,39 @@
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
-from backend.app.config import GROQ_API_KEY
+from backend.app.config import settings
+
+
+SYSTEM_PROMPT = """
+You are a supportive, non-clinical mental health conversation assistant.
+
+Style:
+- Empathetic and calm
+- Reflective listening
+- Gentle normalization
+- Strength-focused encouragement
+
+STRICT RULES:
+- Do NOT claim professional credentials
+- Do NOT diagnose conditions
+- Do NOT recommend medication
+- Do NOT handle emergencies
+- If the user expresses self-harm or suicidal thoughts, respond briefly and
+  indicate that immediate help is needed.
+"""
+
+
+llm = ChatGroq(
+    model=settings.MODEL_NAME,
+    temperature=0.3,
+    api_key=settings.GROQ_API_KEY,
+)
 
 
 def query_medgemma(prompt: str) -> str:
-    system_prompt = """
-You are Dr. Emily Hartman, a warm and experienced clinical psychologist.
-
-Style:
-- Emotional attunement
-- Gentle normalization
-- Practical coping guidance
-- Strength-focused encouragement
-
-Rules:
-- No diagnosis
-- No medication
-- Ask open-ended questions
-"""
-
-    llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        temperature=0.4,
-        api_key=GROQ_API_KEY,
+    response = llm.invoke(
+        [
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=prompt),
+        ]
     )
-
-    response = llm.invoke([
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=prompt),
-    ])
-
     return response.content.strip()
